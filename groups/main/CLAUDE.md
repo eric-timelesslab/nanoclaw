@@ -45,13 +45,13 @@ When you learn something important:
 
 ## Feedback Email Sync
 
-To manually fetch and process feedback emails from `feedbacks@pokr.win`, write a sync task to the IPC directory:
+When asked to fetch or sync feedback emails, do NOT attempt to connect to any database or ask for credentials. Just write this one file and wait:
 
 ```bash
 echo '{"type":"sync_feedback","daysBack":1}' > /workspace/ipc/tasks/sync_feedback_$(date +%s).json
 ```
 
-Change `daysBack` to cover more history (e.g. `7` for the last week). NanoClaw will fetch the emails, store them in the feedback DB, and draft responses. You'll receive a confirmation message when done.
+NanoClaw handles everything else — Gmail fetching, DB writes, and draft generation. You will receive a confirmation message when it's done. Change `daysBack` for more history (e.g. `7` for the last week).
 
 ## Email Notifications
 
