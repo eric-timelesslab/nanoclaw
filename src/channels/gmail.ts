@@ -7,6 +7,7 @@ import { OAuth2Client } from 'google-auth-library';
 
 // isMain flag is used instead of MAIN_GROUP_FOLDER constant
 import { logger } from '../logger.js';
+import { processAndStoreFeedback } from '../feedback-store.js';
 import { registerChannel, ChannelOpts } from './registry.js';
 import {
   Channel,
@@ -320,6 +321,20 @@ export class GmailChannel implements Channel {
       { mainJid, from: senderName, subject },
       'Gmail email delivered to main group',
     );
+
+    // Store in feedback DB and draft a response (fire-and-forget, don't block notification)
+    if (process.env.DATABASE_URL) {
+      processAndStoreFeedback({
+        id: messageId,
+        threadId,
+        sender: senderEmail,
+        senderName,
+        subject,
+        body,
+        timestamp,
+        rfc2822MessageId,
+      }).catch((err) => logger.error({ err, messageId }, 'Failed to process feedback email'));
+    }
   }
 
   private extractTextBody(

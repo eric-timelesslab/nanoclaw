@@ -1,17 +1,17 @@
-import { listEmails } from '@/lib/gmail';
+import { listFeedback } from '@/lib/db';
 import InboxClient from '@/components/InboxClient';
 
 export const revalidate = 0;
 
 export default async function InboxPage() {
-  let emails: Awaited<ReturnType<typeof listEmails>> = [];
+  let rows: Awaited<ReturnType<typeof listFeedback>> = [];
   let error: string | null = null;
 
   try {
-    emails = await listEmails();
+    rows = await listFeedback();
   } catch (err) {
     error = String(err);
   }
 
-  return <InboxClient initialEmails={emails} initialError={error} />;
+  return <InboxClient initialRows={rows} initialError={error} />;
 }
