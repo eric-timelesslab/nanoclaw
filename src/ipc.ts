@@ -6,6 +6,7 @@ import { CronExpressionParser } from 'cron-parser';
 import { DATA_DIR, IPC_POLL_INTERVAL, TIMEZONE } from './config.js';
 import { AvailableGroup } from './container-runner.js';
 import { createTask, deleteTask, getTaskById, updateTask } from './db.js';
+import { syncFeedbackEmails } from './feedback-store.js';
 import { isValidGroupFolder } from './group-folder.js';
 import { logger } from './logger.js';
 import { RegisteredGroup } from './types.js';
@@ -165,6 +166,7 @@ export async function processTaskIpc(
     groupFolder?: string;
     chatJid?: string;
     targetJid?: string;
+    daysBack?: number;
     // For register_group
     jid?: string;
     name?: string;
@@ -452,6 +454,35 @@ export async function processTaskIpc(
           { data },
           'Invalid register_group request - missing required fields',
         );
+      }
+      break;
+
+    case 'sync_feedback':
+      if (!isMain) {
+        logger.warn({ sourceGroup }, 'Unauthorized sync_feedback attempt blocked');
+        break;
+      }
+      if (!process.env.DATABASE_URL) {
+        logger.warn('sync_feedback: DATABASE_URL not set, skipping');
+        break;
+      }
+      {
+        const daysBack =
+          typeof data.daysBack === 'number' && data.daysBack > 0
+            ? data.daysBack
+            : 1;
+        syncFeedbackEmails(daysBack)
+          .then((count) =>
+            deps.sendMessage(
+              Object.keys(deps.registeredGroups()).find(
+                (jid) => deps.registeredGroups()[jid].folder === sourceGroup,
+              ) || '',
+              `Feedback sync complete — ${count} email${count === 1 ? '' : 's'} processed.`,
+            ),
+          )
+          .catch((err) =>
+            logger.error({ err }, 'sync_feedback IPC handler failed'),
+          );
       }
       break;
 
