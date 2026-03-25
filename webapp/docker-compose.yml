@@ -1,0 +1,18 @@
+services:
+  feedback-webapp:
+    build:
+      context: ..
+      dockerfile: webapp/Dockerfile
+    image: nanoclaw-feedback:latest
+    container_name: nanoclaw-feedback
+    ports:
+      - "4000:4000"
+    environment:
+      - WEBAPP_PORT=4000
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    volumes:
+      # Read-only access to NanoClaw's SQLite DB
+      - ../store:/app/store:ro
+      # Gmail OAuth credentials
+      - ~/.gmail-mcp:/root/.gmail-mcp:ro
+    restart: unless-stopped
