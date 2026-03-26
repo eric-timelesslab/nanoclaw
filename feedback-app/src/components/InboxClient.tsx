@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import type { FeedbackRow } from '@/lib/db';
 
 interface Props {
@@ -49,9 +49,12 @@ export default function InboxClient({ initialRows, initialError }: Props) {
   const [selected, setSelected] = useState<FeedbackRow | null>(null);
   const [loadingRow, setLoadingRow] = useState(false);
   const [draft, setDraft] = useState('');
+  const [savedDraft, setSavedDraft] = useState('');
   const [sendLoading, setSendLoading] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
   const [sendDone, setSendDone] = useState(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refresh = useCallback(async () => {
     setListError(null);
@@ -71,6 +74,7 @@ export default function InboxClient({ initialRows, initialError }: Props) {
       setSelectedId(id);
       setSelected(null);
       setDraft('');
+      setSavedDraft('');
       setStatus(null);
       setSendDone(false);
       setLoadingRow(true);
@@ -79,6 +83,7 @@ export default function InboxClient({ initialRows, initialError }: Props) {
         const data: FeedbackRow = await res.json();
         setSelected(data);
         setDraft(data.draft ?? '');
+        setSavedDraft(data.draft ?? '');
         setSendDone(data.status === 'sent');
       } catch (err) {
         setStatus({ type: 'error', msg: String(err) });
@@ -89,12 +94,41 @@ export default function InboxClient({ initialRows, initialError }: Props) {
     [selectedId],
   );
 
+  const saveDraft = useCallback(async (id: string, text: string) => {
+    setSaveLoading(true);
+    try {
+      const res = await fetch(`/api/emails/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draft: text }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setSavedDraft(text);
+      setStatus({ type: 'success', msg: 'Draft saved.' });
+    } catch (err) {
+      setStatus({ type: 'error', msg: String(err) });
+    } finally {
+      setSaveLoading(false);
+    }
+  }, []);
+
+  const handleDraftChange = useCallback(
+    (text: string) => {
+      setDraft(text);
+      setStatus(null);
+      if (!selectedId) return;
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => saveDraft(selectedId, text), 2000);
+    },
+    [selectedId, saveDraft],
+  );
+
   const sendReply = useCallback(async () => {
     if (!selectedId || !draft.trim()) {
       setStatus({ type: 'error', msg: 'Draft is empty.' });
       return;
     }
-    if (!confirm('Send this reply?')) return;
     setSendLoading(true);
     try {
       const res = await fetch(`/api/emails/${selectedId}/send`, {
@@ -106,6 +140,7 @@ export default function InboxClient({ initialRows, initialError }: Props) {
       if (data.error) throw new Error(data.error);
       setStatus({ type: 'success', msg: 'Reply sent!' });
       setSendDone(true);
+      setSavedDraft(draft);
       setRows((prev) =>
         prev.map((r) => (r.id === selectedId ? { ...r, status: 'sent' } : r)),
       );
@@ -115,6 +150,8 @@ export default function InboxClient({ initialRows, initialError }: Props) {
       setSendLoading(false);
     }
   }, [selectedId, draft]);
+
+  const isDirty = draft !== savedDraft;
 
   return (
     <div className="layout">
@@ -170,16 +207,28 @@ export default function InboxClient({ initialRows, initialError }: Props) {
                 {!selected.draft && (
                   <span style={{ fontSize: 12, color: '#999' }}>Andy is drafting a response...</span>
                 )}
+                {isDirty && !sendDone && (
+                  <span style={{ fontSize: 12, color: '#bbb' }}>Unsaved changes</span>
+                )}
               </div>
               <textarea
                 className="draft-textarea"
                 value={draft}
-                onChange={(e) => setDraft(e.target.value)}
+                onChange={(e) => handleDraftChange(e.target.value)}
                 placeholder={selected.draft ? '' : 'Draft will appear here once Andy finishes — refresh to check.'}
                 disabled={sendDone}
               />
               {status && <div className={`status status-${status.type}`}>{status.msg}</div>}
               <div className="reply-bottom-actions">
+                {!sendDone && (
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => selectedId && saveDraft(selectedId, draft)}
+                    disabled={saveLoading || !isDirty}
+                  >
+                    {saveLoading ? 'Saving...' : 'Save Draft'}
+                  </button>
+                )}
                 <button
                   className="btn btn-success"
                   onClick={sendReply}

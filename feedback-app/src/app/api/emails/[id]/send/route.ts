@@ -15,11 +15,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     await sendReply(
       row.thread_id,
       row.sender,
-      row.subject,
+      row.subject ?? '',
       draft,
       row.rfc2822_message_id ?? '',
     );
-    await markSent(id);
+    await markSent(id, draft);
 
     return NextResponse.json({ ok: true });
   } catch (err) {

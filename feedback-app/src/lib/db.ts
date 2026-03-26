@@ -41,9 +41,16 @@ export async function getFeedback(id: string): Promise<FeedbackRow | null> {
   return rows[0] ?? null;
 }
 
-export async function markSent(id: string): Promise<void> {
+export async function saveDraft(id: string, draft: string): Promise<void> {
   const db = sql();
   await db`
-    UPDATE feedback SET status = 'sent', sent_at = NOW() WHERE id = ${id}
+    UPDATE feedback SET draft = ${draft} WHERE id = ${id}
+  `;
+}
+
+export async function markSent(id: string, finalDraft: string | null): Promise<void> {
+  const db = sql();
+  await db`
+    UPDATE feedback SET status = 'sent', sent_at = NOW(), draft = ${finalDraft} WHERE id = ${id}
   `;
 }
