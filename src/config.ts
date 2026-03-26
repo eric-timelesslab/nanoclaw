@@ -9,11 +9,19 @@ const envConfig = readEnvFile([
   'ASSISTANT_HAS_OWN_NUMBER',
   'ONECLI_URL',
   'DATABASE_URL',
+  'ANTHROPIC_API_KEY',
+  'CLAUDE_CODE_OAUTH_TOKEN',
 ]);
 
 // Expose to process.env so modules that read process.env directly can use it
 if (envConfig.DATABASE_URL && !process.env.DATABASE_URL) {
   process.env.DATABASE_URL = envConfig.DATABASE_URL;
+}
+if (envConfig.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_API_KEY) {
+  process.env.ANTHROPIC_API_KEY = envConfig.ANTHROPIC_API_KEY;
+}
+if (envConfig.CLAUDE_CODE_OAUTH_TOKEN && !process.env.CLAUDE_CODE_OAUTH_TOKEN) {
+  process.env.CLAUDE_CODE_OAUTH_TOKEN = envConfig.CLAUDE_CODE_OAUTH_TOKEN;
 }
 
 export const ASSISTANT_NAME =

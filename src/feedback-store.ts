@@ -50,7 +50,9 @@ async function ensureSchema(): Promise<void> {
 }
 
 async function generateDraft(email: FeedbackEmail): Promise<string> {
-  const client = new Anthropic();
+  const client = process.env.ANTHROPIC_API_KEY
+    ? new Anthropic()
+    : new Anthropic({ authToken: process.env.CLAUDE_CODE_OAUTH_TOKEN });
   const response = await client.messages.create({
     model: 'claude-opus-4-6',
     max_tokens: 1024,
@@ -181,9 +183,7 @@ export async function syncFeedbackEmails(daysBack = 1): Promise<number> {
       ).toISOString();
 
       const senderMatch = from.match(/^(.+?)\s*<(.+?)>$/);
-      const senderName = senderMatch
-        ? senderMatch[1].replace(/"/g, '')
-        : from;
+      const senderName = senderMatch ? senderMatch[1].replace(/"/g, '') : from;
       const sender = senderMatch ? senderMatch[2] : from;
       const body = extractTextBody(msg.data.payload);
 
