@@ -8,7 +8,13 @@ const envConfig = readEnvFile([
   'ASSISTANT_NAME',
   'ASSISTANT_HAS_OWN_NUMBER',
   'ONECLI_URL',
+  'DATABASE_URL',
 ]);
+
+// Expose to process.env so modules that read process.env directly can use it
+if (envConfig.DATABASE_URL && !process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = envConfig.DATABASE_URL;
+}
 
 export const ASSISTANT_NAME =
   process.env.ASSISTANT_NAME || envConfig.ASSISTANT_NAME || 'Andy';
