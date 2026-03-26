@@ -459,7 +459,10 @@ export async function processTaskIpc(
 
     case 'sync_feedback':
       if (!isMain) {
-        logger.warn({ sourceGroup }, 'Unauthorized sync_feedback attempt blocked');
+        logger.warn(
+          { sourceGroup },
+          'Unauthorized sync_feedback attempt blocked',
+        );
         break;
       }
       if (!process.env.DATABASE_URL) {

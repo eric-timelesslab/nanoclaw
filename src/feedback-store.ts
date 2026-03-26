@@ -12,11 +12,81 @@ export interface FeedbackEmail {
   id: string;
   threadId: string;
   sender: string;
-  senderName: string;
+  senderName?: string;
   subject: string;
   body: string;
   timestamp: string;
   rfc2822MessageId: string;
+}
+
+export interface ParsedFeedback {
+  category: string;
+  email: string;
+  name: string;
+  uuid: string;
+  timezone: string;
+  appVersion: string;
+  coreVersion: string;
+  message: string;
+}
+
+/**
+ * Parse the structured email body format:
+ *
+ * Bug Reports
+ * Email: yaoninja@gmail.com
+ * Name: Chuan Yao
+ * UUID: 019c924e-...
+ * Timezone: America/New_York
+ * App Version: 1.8.0
+ * Core Version: 1.1.4
+ *
+ * <free-text message>
+ */
+export function parseFeedbackBody(body: string): ParsedFeedback {
+  const lines = body.split('\n');
+  const fields: Record<string, string> = {};
+  let category = '';
+  let messageLines: string[] = [];
+  let inMessage = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    if (i === 0) {
+      category = trimmed;
+      continue;
+    }
+
+    if (inMessage) {
+      messageLines.push(line);
+      continue;
+    }
+
+    if (trimmed === '') {
+      inMessage = true;
+      continue;
+    }
+
+    const colonIdx = trimmed.indexOf(':');
+    if (colonIdx !== -1) {
+      const key = trimmed.slice(0, colonIdx).trim().toLowerCase().replace(/\s+/g, '_');
+      const value = trimmed.slice(colonIdx + 1).trim();
+      fields[key] = value;
+    }
+  }
+
+  return {
+    category,
+    email: fields['email'] || '',
+    name: fields['name'] || '',
+    uuid: fields['uuid'] || '',
+    timezone: fields['timezone'] || '',
+    appVersion: fields['app_version'] || '',
+    coreVersion: fields['core_version'] || '',
+    message: messageLines.join('\n').trim(),
+  };
 }
 
 function db() {
@@ -35,9 +105,14 @@ async function ensureSchema(): Promise<void> {
       id                 TEXT PRIMARY KEY,
       thread_id          TEXT NOT NULL,
       sender             TEXT NOT NULL,
-      sender_name        TEXT NOT NULL,
-      subject            TEXT NOT NULL,
-      body               TEXT NOT NULL,
+      category           TEXT,
+      name               TEXT,
+      uuid               TEXT,
+      timezone           TEXT,
+      app_version        TEXT,
+      core_version       TEXT,
+      message            TEXT,
+      subject            TEXT,
       draft              TEXT,
       status             TEXT NOT NULL DEFAULT 'pending',
       received_at        TIMESTAMPTZ NOT NULL,
@@ -49,22 +124,29 @@ async function ensureSchema(): Promise<void> {
   schemaReady = true;
 }
 
-async function generateDraft(email: FeedbackEmail): Promise<string> {
+async function generateDraft(
+  parsed: ParsedFeedback,
+  email: FeedbackEmail,
+): Promise<string> {
   const client = process.env.ANTHROPIC_API_KEY
     ? new Anthropic()
     : new Anthropic({ authToken: process.env.CLAUDE_CODE_OAUTH_TOKEN });
+
   const response = await client.messages.create({
     model: 'claude-opus-4-6',
     max_tokens: 1024,
     messages: [
       {
         role: 'user',
-        content: `Draft a professional, empathetic reply to this user feedback email for Pokr.
+        content: `Draft a professional, empathetic reply to this user feedback for Pokr.
 
-From: ${email.senderName} <${email.sender}>
-Subject: ${email.subject}
+Category: ${parsed.category}
+From: ${parsed.name} <${parsed.email}>
+App Version: ${parsed.appVersion}
+Core Version: ${parsed.coreVersion}
 
-${email.body}
+Message:
+${parsed.message}
 
 Sign off as "The Pokr Team". Output only the email body — no subject line, no labels.`,
       },
@@ -78,23 +160,24 @@ export async function processAndStoreFeedback(
 ): Promise<void> {
   await ensureSchema();
   const sql = db();
+  const parsed = parseFeedbackBody(email.body);
 
-  // Insert email (skip if already stored)
   await sql`
-    INSERT INTO feedback (id, thread_id, sender, sender_name, subject, body, status, received_at, rfc2822_message_id)
-    VALUES (
-      ${email.id}, ${email.threadId}, ${email.sender}, ${email.senderName},
-      ${email.subject}, ${email.body}, 'pending', ${email.timestamp}, ${email.rfc2822MessageId}
+    INSERT INTO feedback (
+      id, thread_id, sender, category, name, uuid, timezone,
+      app_version, core_version, message, subject, status, received_at, rfc2822_message_id
+    ) VALUES (
+      ${email.id}, ${email.threadId}, ${email.sender},
+      ${parsed.category}, ${parsed.name}, ${parsed.uuid}, ${parsed.timezone},
+      ${parsed.appVersion}, ${parsed.coreVersion}, ${parsed.message},
+      ${email.subject}, 'pending', ${email.timestamp}, ${email.rfc2822MessageId}
     )
     ON CONFLICT (id) DO NOTHING
   `;
 
-  logger.info(
-    { id: email.id, subject: email.subject },
-    'Feedback stored, generating draft',
-  );
+  logger.info({ id: email.id, category: parsed.category }, 'Feedback stored, generating draft');
 
-  const draft = await generateDraft(email);
+  const draft = await generateDraft(parsed, email);
 
   await sql`
     UPDATE feedback SET draft = ${draft}, drafted_at = NOW() WHERE id = ${email.id}
@@ -183,7 +266,6 @@ export async function syncFeedbackEmails(daysBack = 1): Promise<number> {
       ).toISOString();
 
       const senderMatch = from.match(/^(.+?)\s*<(.+?)>$/);
-      const senderName = senderMatch ? senderMatch[1].replace(/"/g, '') : from;
       const sender = senderMatch ? senderMatch[2] : from;
       const body = extractTextBody(msg.data.payload);
 
@@ -193,7 +275,6 @@ export async function syncFeedbackEmails(daysBack = 1): Promise<number> {
         id: stub.id,
         threadId,
         sender,
-        senderName,
         subject,
         body,
         timestamp,

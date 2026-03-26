@@ -32,6 +32,16 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function MetaField({ label, value }: { label: string; value: string | null }) {
+  if (!value) return null;
+  return (
+    <div style={{ display: 'flex', gap: 8, fontSize: 13 }}>
+      <span style={{ color: '#999', minWidth: 100 }}>{label}</span>
+      <span style={{ color: '#333' }}>{value}</span>
+    </div>
+  );
+}
+
 export default function InboxClient({ initialRows, initialError }: Props) {
   const [rows, setRows] = useState<FeedbackRow[]>(initialRows);
   const [listError, setListError] = useState<string | null>(initialError);
@@ -96,7 +106,6 @@ export default function InboxClient({ initialRows, initialError }: Props) {
       if (data.error) throw new Error(data.error);
       setStatus({ type: 'success', msg: 'Reply sent!' });
       setSendDone(true);
-      // Update the row status in sidebar
       setRows((prev) =>
         prev.map((r) => (r.id === selectedId ? { ...r, status: 'sent' } : r)),
       );
@@ -109,91 +118,67 @@ export default function InboxClient({ initialRows, initialError }: Props) {
 
   return (
     <div className="layout">
-      {/* Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-header">
           <h1>Feedback Inbox</h1>
-          <button className="refresh-btn" onClick={refresh} title="Refresh">
-            ↻
-          </button>
+          <button className="refresh-btn" onClick={refresh} title="Refresh">↻</button>
         </div>
         <div className="email-list">
-          {listError && (
-            <div className="empty-list" style={{ color: '#c00' }}>
-              {listError}
-            </div>
-          )}
-          {!listError && rows.length === 0 && (
-            <div className="empty-list">No feedback yet</div>
-          )}
+          {listError && <div className="empty-list" style={{ color: '#c00' }}>{listError}</div>}
+          {!listError && rows.length === 0 && <div className="empty-list">No feedback yet</div>}
           {rows.map((r) => (
             <div
               key={r.id}
               className={`email-item${r.id === selectedId ? ' active' : ''}`}
               onClick={() => selectRow(r.id)}
             >
-              <div
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-              >
-                <div className="email-item-from">{r.sender_name || r.sender}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="email-item-from">{r.name || r.sender}</div>
                 <StatusBadge status={r.status} />
               </div>
-              <div className="email-item-subject">{r.subject || '(no subject)'}</div>
+              <div className="email-item-subject">{r.category || r.subject || '(no category)'}</div>
               <div className="email-item-time">{formatTime(r.received_at)}</div>
             </div>
           ))}
         </div>
       </aside>
 
-      {/* Main panel */}
       <main className="main">
         {!selectedId && <div className="empty-main">Select a feedback email to review</div>}
         {selectedId && loadingRow && <div className="empty-main">Loading...</div>}
 
         {selectedId && !loadingRow && selected && (
           <>
-            {/* Email */}
             <div className="card">
-              <div className="email-subject">{selected.subject || '(no subject)'}</div>
-              <div className="email-meta-line">
-                From: <strong>{selected.sender_name || selected.sender}</strong>{' '}
-                &lt;{selected.sender}&gt;
-              </div>
-              <div className="email-meta-line" style={{ color: '#aaa', fontSize: 12 }}>
-                {new Date(selected.received_at).toLocaleString()}
+              <div className="email-subject">{selected.category || selected.subject || '(no category)'}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '12px 0' }}>
+                <MetaField label="Name" value={selected.name} />
+                <MetaField label="Email" value={selected.sender} />
+                <MetaField label="UUID" value={selected.uuid} />
+                <MetaField label="Timezone" value={selected.timezone} />
+                <MetaField label="App Version" value={selected.app_version} />
+                <MetaField label="Core Version" value={selected.core_version} />
+                <MetaField label="Received" value={new Date(selected.received_at).toLocaleString()} />
               </div>
               <hr className="email-divider" />
-              <div className="email-body">{selected.body}</div>
+              <div className="email-body">{selected.message || '(no message)'}</div>
             </div>
 
-            {/* Reply */}
             <div className="card">
-              <div
-                style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}
-              >
-                <div className="reply-title" style={{ margin: 0 }}>
-                  Draft Reply
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <div className="reply-title" style={{ margin: 0 }}>Draft Reply</div>
                 {!selected.draft && (
-                  <span style={{ fontSize: 12, color: '#999' }}>
-                    Andy is drafting a response...
-                  </span>
+                  <span style={{ fontSize: 12, color: '#999' }}>Andy is drafting a response...</span>
                 )}
               </div>
               <textarea
                 className="draft-textarea"
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                placeholder={
-                  selected.draft
-                    ? ''
-                    : 'Draft will appear here once Andy finishes — refresh to check.'
-                }
+                placeholder={selected.draft ? '' : 'Draft will appear here once Andy finishes — refresh to check.'}
                 disabled={sendDone}
               />
-              {status && (
-                <div className={`status status-${status.type}`}>{status.msg}</div>
-              )}
+              {status && <div className={`status status-${status.type}`}>{status.msg}</div>}
               <div className="reply-bottom-actions">
                 <button
                   className="btn btn-success"

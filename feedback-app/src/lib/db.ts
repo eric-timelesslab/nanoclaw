@@ -10,9 +10,14 @@ export interface FeedbackRow {
   id: string;
   thread_id: string;
   sender: string;
-  sender_name: string;
-  subject: string;
-  body: string;
+  category: string | null;
+  name: string | null;
+  uuid: string | null;
+  timezone: string | null;
+  app_version: string | null;
+  core_version: string | null;
+  message: string | null;
+  subject: string | null;
   draft: string | null;
   status: string;
   received_at: string;

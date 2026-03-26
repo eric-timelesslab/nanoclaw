@@ -333,7 +333,9 @@ export class GmailChannel implements Channel {
         body,
         timestamp,
         rfc2822MessageId,
-      }).catch((err) => logger.error({ err, messageId }, 'Failed to process feedback email'));
+      }).catch((err) =>
+        logger.error({ err, messageId }, 'Failed to process feedback email'),
+      );
     }
   }
 
