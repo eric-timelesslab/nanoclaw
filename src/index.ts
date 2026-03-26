@@ -497,6 +497,9 @@ async function main(): Promise<void> {
   ensureContainerSystemRunning();
   initDatabase();
   logger.info('Database initialized');
+  logger.info(
+    `Feedback DB config: DATABASE_URL=${process.env.DATABASE_URL ? 'set' : 'NOT SET'}`,
+  );
   loadState();
 
   // Ensure OneCLI agents exist for all registered groups.
