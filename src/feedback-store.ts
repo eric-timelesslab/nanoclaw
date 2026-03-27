@@ -65,7 +65,11 @@ export function parseFeedbackBody(body: string): ParsedFeedback {
     }
 
     if (inMessage) {
-      if (trimmed === '--' || trimmed === '-- ') break;
+      if (
+        trimmed === '--' ||
+        trimmed === '-- ' ||
+        /^Quick Reply\s/i.test(trimmed)
+      ) break;
       messageLines.push(line);
       continue;
     }
