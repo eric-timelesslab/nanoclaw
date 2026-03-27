@@ -43,11 +43,16 @@ export interface ParsedFeedback {
  *
  * <free-text message>
  */
+// Matches "Key: value" or "* Key: value" where key is word characters + spaces
+const FIELD_RE = /^\*?\s*([A-Za-z][A-Za-z ]+?)\s*:\s*(.+)$/;
+
 export function parseFeedbackBody(body: string): ParsedFeedback {
-  const lines = body.split('\n');
+  // Normalize CRLF
+  const lines = body.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
   const fields: Record<string, string> = {};
   let category = '';
-  let messageLines: string[] = [];
+  const messageLines: string[] = [];
+  let seenField = false;
   let inMessage = false;
 
   for (let i = 0; i < lines.length; i++) {
@@ -60,27 +65,23 @@ export function parseFeedbackBody(body: string): ParsedFeedback {
     }
 
     if (inMessage) {
-      // Stop at standard email signature delimiter or Google Groups footer
       if (trimmed === '--' || trimmed === '-- ') break;
       messageLines.push(line);
       continue;
     }
 
     if (trimmed === '') {
-      inMessage = true;
+      // Only enter message mode after we've seen at least one header field;
+      // blank lines before the fields (e.g. between category and fields) are skipped.
+      if (seenField) inMessage = true;
       continue;
     }
 
-    const colonIdx = trimmed.indexOf(':');
-    if (colonIdx !== -1) {
-      const key = trimmed
-        .slice(0, colonIdx)
-        .replace(/^\*\s*/, '') // strip leading "* " prefix
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, '_');
-      const value = trimmed.slice(colonIdx + 1).trim();
-      fields[key] = value;
+    const match = trimmed.match(FIELD_RE);
+    if (match) {
+      const key = match[1].trim().toLowerCase().replace(/\s+/g, '_');
+      fields[key] = match[2].trim();
+      seenField = true;
     }
   }
 
