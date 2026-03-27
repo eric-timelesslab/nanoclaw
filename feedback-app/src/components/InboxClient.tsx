@@ -41,143 +41,89 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function IconPerson() {
+function IconChevron({ open }: { open: boolean }) {
   return (
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-      <circle cx="8" cy="5.5" r="2.5" />
-      <path d="M2.5 14c0-3 2.5-5 5.5-5s5.5 2 5.5 5" />
-    </svg>
-  );
-}
-
-function IconMail() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="1.5" y="4" width="13" height="9" rx="1.5" />
-      <path d="M1.5 5.5 8 9.5l6.5-4" />
-    </svg>
-  );
-}
-
-function IconGlobe() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-      <circle cx="8" cy="8" r="6" />
-      <path d="M8 2c-2 2-2 9 0 12M8 2c2 2 2 9 0 12M2.5 6h11M2.5 10h11" />
-    </svg>
-  );
-}
-
-function IconHash() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-      <path d="M3 6h10M3 10h10M6 3l-1.5 10M11.5 3 10 13" />
-    </svg>
-  );
-}
-
-function IconClock() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-      <circle cx="8" cy="8" r="6" />
-      <path d="M8 5v3.5l2.5 1.5" />
-    </svg>
-  );
-}
-
-function IconPhone() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="4" y="1" width="8" height="14" rx="1.5" />
-      <circle cx="8" cy="12.5" r="0.75" fill="currentColor" stroke="none" />
+    <svg
+      width="12" height="12" viewBox="0 0 12 12" fill="none"
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+      style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}
+    >
+      <path d="M4 2.5l4 3.5-4 3.5" />
     </svg>
   );
 }
 
 function FeedbackCard({ row }: { row: FeedbackRow }) {
+  const [metaOpen, setMetaOpen] = useState(false);
   const catColor = categoryColor(row.category);
-  const shortUuid = row.uuid ? row.uuid.slice(0, 8) + '…' : null;
 
   return (
     <div className="card">
-      {/* Category + status row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+      {/* Header: badges + sender email */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
         {row.category && (
           <span style={{
             background: catColor.bg,
             color: catColor.color,
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: 700,
-            padding: '4px 12px',
+            padding: '3px 10px',
             borderRadius: 99,
-            letterSpacing: '0.02em',
+            letterSpacing: '0.03em',
           }}>
             {row.category}
           </span>
         )}
         <StatusBadge status={row.status} />
+        <span style={{ flex: 1 }} />
+        <span style={{ fontSize: 13, color: '#64748b' }}>{row.sender}</span>
       </div>
 
-      {/* Sender */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
-          <span style={{ color: '#94a3b8' }}><IconPerson /></span>
-          <span style={{ fontSize: 18, fontWeight: 700, color: '#1a1a2e' }}>
-            {row.name || 'Unknown'}
+      {/* Message — hero element */}
+      <div style={{
+        fontSize: 15,
+        lineHeight: 1.8,
+        color: '#1e293b',
+        whiteSpace: 'pre-wrap',
+        marginBottom: 20,
+      }}>
+        {row.message || '(no message)'}
+      </div>
+
+      {/* Collapsible metadata */}
+      <button
+        onClick={() => setMetaOpen((v) => !v)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 5,
+          background: 'none', border: 'none', cursor: 'pointer',
+          fontSize: 12, color: '#94a3b8', padding: '2px 0',
+          fontFamily: 'inherit',
+        }}
+      >
+        <IconChevron open={metaOpen} />
+        Details
+      </button>
+
+      {metaOpen && (
+        <div style={{
+          marginTop: 12,
+          display: 'grid',
+          gridTemplateColumns: 'max-content 1fr',
+          gap: '6px 16px',
+          fontSize: 12,
+          color: '#94a3b8',
+        }}>
+          {row.name && <><span>Name</span><span style={{ color: '#64748b' }}>{row.name}</span></>}
+          {row.app_version && <><span>App</span><span style={{ color: '#64748b' }}>{row.app_version}</span></>}
+          {row.core_version && <><span>Core</span><span style={{ color: '#64748b' }}>{row.core_version}</span></>}
+          {row.timezone && <><span>Timezone</span><span style={{ color: '#64748b' }}>{row.timezone}</span></>}
+          {row.uuid && <><span>UUID</span><span style={{ color: '#64748b', fontFamily: 'monospace', fontSize: 11 }}>{row.uuid}</span></>}
+          <span>Received</span>
+          <span style={{ color: '#64748b' }}>
+            {new Date(row.received_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
           </span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, paddingLeft: 1 }}>
-          <span style={{ color: '#94a3b8' }}><IconMail /></span>
-          <span style={{ fontSize: 13, color: '#64748b' }}>{row.sender}</span>
-        </div>
-      </div>
-
-      {/* Version chips */}
-      {(row.app_version || row.core_version) && (
-        <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
-          {row.app_version && (
-            <span className="version-chip">
-              <IconPhone />
-              App {row.app_version}
-            </span>
-          )}
-          {row.core_version && (
-            <span className="version-chip">
-              Core {row.core_version}
-            </span>
-          )}
         </div>
       )}
-
-      {/* Secondary metadata */}
-      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
-        {row.timezone && (
-          <span className="meta-chip">
-            <IconGlobe />
-            {row.timezone}
-          </span>
-        )}
-        {shortUuid && (
-          <span className="meta-chip" title={row.uuid ?? ''}>
-            <IconHash />
-            {shortUuid}
-          </span>
-        )}
-        <span className="meta-chip">
-          <IconClock />
-          {new Date(row.received_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
-        </span>
-      </div>
-
-      <hr className="email-divider" />
-
-      {/* Message body */}
-      <div style={{ marginTop: 4 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>
-          Message
-        </div>
-        <div className="email-body">{row.message || '(no message)'}</div>
-      </div>
     </div>
   );
 }
@@ -328,14 +274,17 @@ export default function InboxClient({ initialRows, initialError }: Props) {
           <>
             <FeedbackCard row={selected} />
 
-            <div className="card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                <div className="reply-title" style={{ margin: 0 }}>Draft Reply</div>
+            {/* Reply card — subdued */}
+            <div className="card" style={{ borderColor: '#eef0f5', background: '#fafbfc' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#94a3b8', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                  Reply
+                </span>
                 {!selected.draft && (
-                  <span style={{ fontSize: 12, color: '#999' }}>Andy is drafting a response...</span>
+                  <span style={{ fontSize: 12, color: '#bbb' }}>Andy is drafting...</span>
                 )}
                 {isDirty && !sendDone && (
-                  <span style={{ fontSize: 12, color: '#bbb' }}>Unsaved changes</span>
+                  <span style={{ fontSize: 12, color: '#cbd5e1' }}>Unsaved</span>
                 )}
               </div>
               <textarea
@@ -344,6 +293,7 @@ export default function InboxClient({ initialRows, initialError }: Props) {
                 onChange={(e) => handleDraftChange(e.target.value)}
                 placeholder={selected.draft ? '' : 'Draft will appear here once Andy finishes — refresh to check.'}
                 disabled={sendDone}
+                style={{ background: sendDone ? '#f8f9fc' : undefined }}
               />
               {status && <div className={`status status-${status.type}`}>{status.msg}</div>}
               <div className="reply-bottom-actions">
@@ -353,7 +303,7 @@ export default function InboxClient({ initialRows, initialError }: Props) {
                     onClick={() => selectedId && saveDraft(selectedId, draft)}
                     disabled={saveLoading || !isDirty}
                   >
-                    {saveLoading ? 'Saving...' : 'Save Draft'}
+                    {saveLoading ? 'Saving...' : 'Save'}
                   </button>
                 )}
                 <button
