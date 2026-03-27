@@ -71,7 +71,11 @@ export function parseFeedbackBody(body: string): ParsedFeedback {
 
     const colonIdx = trimmed.indexOf(':');
     if (colonIdx !== -1) {
-      const key = trimmed.slice(0, colonIdx).trim().toLowerCase().replace(/\s+/g, '_');
+      const key = trimmed
+        .slice(0, colonIdx)
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '_');
       const value = trimmed.slice(colonIdx + 1).trim();
       fields[key] = value;
     }
@@ -175,7 +179,10 @@ export async function processAndStoreFeedback(
     ON CONFLICT (id) DO NOTHING
   `;
 
-  logger.info({ id: email.id, category: parsed.category }, 'Feedback stored, generating draft');
+  logger.info(
+    { id: email.id, category: parsed.category },
+    'Feedback stored, generating draft',
+  );
 
   const draft = await generateDraft(parsed, email);
 
