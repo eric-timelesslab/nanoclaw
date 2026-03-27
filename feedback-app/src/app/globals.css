@@ -133,6 +133,28 @@ body {
   margin-bottom: 4px;
 }
 .email-meta-line strong { color: #333; }
+
+.version-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
 .email-divider {
   border: none;
   border-top: 1px solid #f0f1f5;
