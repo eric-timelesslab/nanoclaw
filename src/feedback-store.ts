@@ -60,6 +60,8 @@ export function parseFeedbackBody(body: string): ParsedFeedback {
     }
 
     if (inMessage) {
+      // Stop at standard email signature delimiter or Google Groups footer
+      if (trimmed === '--' || trimmed === '-- ') break;
       messageLines.push(line);
       continue;
     }
