@@ -75,6 +75,7 @@ export function parseFeedbackBody(body: string): ParsedFeedback {
     if (colonIdx !== -1) {
       const key = trimmed
         .slice(0, colonIdx)
+        .replace(/^\*\s*/, '') // strip leading "* " prefix
         .trim()
         .toLowerCase()
         .replace(/\s+/g, '_');
@@ -178,7 +179,14 @@ export async function processAndStoreFeedback(
       ${parsed.appVersion}, ${parsed.coreVersion}, ${parsed.message},
       ${email.subject}, 'pending', ${email.timestamp}, ${email.rfc2822MessageId}
     )
-    ON CONFLICT (id) DO NOTHING
+    ON CONFLICT (id) DO UPDATE SET
+      category = EXCLUDED.category,
+      name = EXCLUDED.name,
+      uuid = EXCLUDED.uuid,
+      timezone = EXCLUDED.timezone,
+      app_version = EXCLUDED.app_version,
+      core_version = EXCLUDED.core_version,
+      message = EXCLUDED.message
   `;
 
   logger.info(
