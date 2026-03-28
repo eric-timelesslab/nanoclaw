@@ -69,7 +69,8 @@ export function parseFeedbackBody(body: string): ParsedFeedback {
         trimmed === '--' ||
         trimmed === '-- ' ||
         /^Quick Reply\s/i.test(trimmed)
-      ) break;
+      )
+        break;
       messageLines.push(line);
       continue;
     }
